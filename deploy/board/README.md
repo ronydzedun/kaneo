@@ -35,7 +35,12 @@ openssl rand -hex 32 > secrets/postgres_password
 openssl rand -hex 32 > secrets/auth_secret
 openssl rand -hex 48 > secrets/oidc_client_secret
 openssl rand -hex 48 > secrets/sync_secret
-chmod 600 secrets/*
+
+# Compose bind-mounts these files with their host ownership. The container
+# runs as UID 1001, and the Postgres entrypoint reads its password as root.
+chown 1001:0 secrets/auth_secret secrets/oidc_client_secret secrets/sync_secret
+chmod 400 secrets/auth_secret secrets/oidc_client_secret secrets/sync_secret
+chmod 444 secrets/postgres_password
 ```
 
 `sync_secret` is shared only with the panel worker. `oidc_client_secret` is the
@@ -78,6 +83,22 @@ docker compose logs --tail=50 kaneo
 First start applies migrations to an empty database. The first native account
 created becomes the instance administrator; register it once, then leave
 `DISABLE_REGISTRATION=true` so only panel-provisioned accounts appear.
+
+Panel-provisioned accounts never take that slot. To make one an instance
+administrator, have it sign in once, then run this as the operator:
+
+```sh
+docker compose exec -T postgres psql -U kaneo -d kaneo -c \
+  "UPDATE \"user\" SET role='admin' WHERE id='<user id from the users list>'"
+```
+
+Bootstrap order that works from empty:
+
+1. Start the stack and create the native administrator account.
+2. Grant `board` in the panel to the accounts that need the board; let them
+   sign in once.
+3. Promote the intended account with the statement above if it must administer
+   the instance, then assign workspace roles and projects in Kaneo.
 
 ## 5. Panel synchronization
 
