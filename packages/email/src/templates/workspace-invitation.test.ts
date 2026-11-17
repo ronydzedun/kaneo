@@ -8,6 +8,24 @@ import zhTW from "../../../../i18n/zh-TW.json";
 import WorkspaceInvitationEmail from "./workspace-invitation";
 
 describe("WorkspaceInvitationEmail", () => {
+  it("omits the email parenthetical when the inviter has no address", async () => {
+    for (const copy of [enUS.invitations.email, zhTW.invitations.email]) {
+      const html = await render(
+        createElement(WorkspaceInvitationEmail, {
+          workspaceName: "Team",
+          inviterName: "Alice",
+          inviterEmail: null,
+          invitationLink: "https://kaneo.example/invite/abc",
+          to: "invite@example.com",
+          copy,
+        }),
+      );
+      expect(html).toContain("Alice");
+      expect(html).not.toContain("Alice ()");
+      expect(html).not.toContain("Alice（）");
+    }
+  });
+
   it("renders the invitation in French for a French locale", async () => {
     const html = await render(
       createElement(WorkspaceInvitationEmail, {

@@ -36,6 +36,7 @@ import type {
 import { InMemoryBroadcastAdapter } from "./in-memory-broadcast-adapter";
 import { RedisBroadcastAdapter } from "./redis-broadcast-adapter";
 import { getProjectReadAccess } from "./project-read-access";
+import { findDeniedExternalUsers } from "./find-denied-external-users";
 
 const INSTANCE_ID = randomUUID();
 let revocationDelivery: ReturnType<typeof createRevocationDelivery> | undefined;
@@ -254,6 +255,30 @@ const projectBroadcastTimeouts = new Map<
 >();
 
 let adapter: BroadcastAdapter | null = null;
+let externalAccessTimer: ReturnType<typeof setInterval> | undefined;
+let externalAccessCheckRunning = false;
+
+async function recheckLocalExternalAccess() {
+  if (externalAccessCheckRunning) return;
+  externalAccessCheckRunning = true;
+  const users = new Set(userConnections.keys());
+  for (const connections of projectConnections.values()) {
+    for (const connection of connections) users.add(connection.userId);
+  }
+  try {
+    const denied = await findDeniedExternalUsers([...users]);
+    for (const userId of denied) {
+      deliverToLocalUserConnections(userId, { type: "USER_ACCESS_REVOKED" });
+    }
+  } catch {
+    // Without the database we cannot distinguish expired external grants.
+    for (const userId of users) {
+      deliverToLocalUserConnections(userId, { type: "USER_ACCESS_REVOKED" });
+    }
+  } finally {
+    externalAccessCheckRunning = false;
+  }
+}
 
 /** Open sockets on this API instance, for the admin system page. */
 export function getLocalRealtimeStats() {
@@ -365,10 +390,17 @@ export async function initializeWebSocketAdapter() {
 
   adapter = nextAdapter;
   revocationDelivery = createRevocationDelivery(nextAdapter);
+  externalAccessTimer = setInterval(
+    () => void recheckLocalExternalAccess(),
+    10_000,
+  );
+  externalAccessTimer.unref();
   console.log(`📡 WebSockets Initialized using: "${adapter.constructor.name}"`);
 }
 
 export async function shutdownWebSocketAdapter() {
+  if (externalAccessTimer) clearInterval(externalAccessTimer);
+  externalAccessTimer = undefined;
   revocationDelivery?.stop();
   revocationDelivery = undefined;
   receivedRevocations?.stop();

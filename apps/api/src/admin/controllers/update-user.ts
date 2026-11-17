@@ -61,7 +61,7 @@ async function updateUser(input: UpdateUserInput, audit: AdminAuditRequest) {
     }
     const email = input.email?.trim().toLowerCase();
     if (email !== undefined && email !== target.email) {
-      if (email !== target.email.trim().toLowerCase()) {
+      if (email !== target.email?.trim().toLowerCase()) {
         const [taken] = await tx
           .select({ id: userTable.id })
           .from(userTable)

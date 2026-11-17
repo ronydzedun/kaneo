@@ -141,6 +141,9 @@ import {
   normalizeInvitationId,
 } from "./utils/registration-policy";
 import { queueSignInEmail } from "./utils/sign-in-email-tasks";
+import { prepareExternalSession } from "./oidc/prepare-external-session";
+import { externalOidcPlugin } from "./oidc/external-oidc-plugin";
+import { getExternalOidcConfig } from "./oidc/login-config";
 import { authCaptchaPaths, verifyTurnstile } from "./utils/verify-turnstile";
 
 config();
@@ -148,6 +151,7 @@ config();
 setBrandNameResolver(async () => (await getInstanceSettings()).instanceName);
 
 const githubSso = getGithubSsoOAuthCredentials();
+const externalOidcConfig = getExternalOidcConfig();
 
 // Only the environment can be read at startup. The database setting is
 // enforced when the user row is created (`assertUserRegistrationAllowed`).
@@ -405,6 +409,7 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    ...(externalOidcConfig ? [externalOidcPlugin(externalOidcConfig)] : []),
     lockedSessionRevocation,
     ...(process.env.DISABLE_GUEST_ACCESS !== "true"
       ? [
@@ -764,6 +769,18 @@ export const auth = betterAuth({
         input: false,
         returned: false,
       },
+      oidcIssuer: {
+        type: "string",
+        required: false,
+        input: false,
+        returned: false,
+      },
+      externalAccessEpoch: {
+        type: "number",
+        required: false,
+        input: false,
+        returned: false,
+      },
     },
     cookieCache: {
       // Consult the session store on every request so password recovery
@@ -870,9 +887,21 @@ export const auth = betterAuth({
     },
     session: {
       create: {
-        before: async (_session, ctx) => {
+        before: async (session, ctx) => {
+          const externalAccessEpoch = await prepareExternalSession(
+            session.userId,
+          );
           const oidcSid = takeSignInSessionId(ctx);
-          if (oidcSid) return { data: { oidcSid } };
+          if (oidcSid || externalAccessEpoch !== null) {
+            return {
+              data: {
+                ...(oidcSid ? { oidcSid } : {}),
+                ...(externalAccessEpoch !== null
+                  ? { externalAccessEpoch }
+                  : {}),
+              },
+            };
+          }
         },
       },
       delete: {

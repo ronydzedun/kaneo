@@ -34,6 +34,7 @@ vi.mock("../../../apps/api/src/backchannel-logout/provider-metadata", () => ({
 
 import {
   handleBackchannelLogoutRoute,
+  handleExternalBackchannelLogoutRoute,
   MAX_LOGOUT_REQUEST_BYTES,
   noStore,
 } from "../../../apps/api/src/backchannel-logout";
@@ -68,6 +69,12 @@ app.post(
   noStore,
   boundedRequestBody(MAX_LOGOUT_REQUEST_BYTES),
   handleBackchannelLogoutRoute,
+);
+app.post(
+  "/external-logout",
+  noStore,
+  boundedRequestBody(MAX_LOGOUT_REQUEST_BYTES),
+  handleExternalBackchannelLogoutRoute,
 );
 
 function postForm(
@@ -110,6 +117,61 @@ afterEach(() => {
 });
 
 describe("back-channel logout route", () => {
+  it("pins external logout to its issuer and limits it to external sessions", async () => {
+    vi.stubEnv("EXTERNAL_IDENTITY_ISSUER", CLAIMS.iss);
+    vi.stubEnv("EXTERNAL_OIDC_CLIENT_ID", "external-client");
+    vi.stubEnv("EXTERNAL_OIDC_CLIENT_SECRET", "external-secret");
+    mocks.getProviderMetadata.mockResolvedValue({
+      issuer: CLAIMS.iss,
+      jwksUri: `${CLAIMS.iss}/keys`,
+      algorithms: ["RS256"],
+    });
+    mocks.verifyLogoutToken.mockImplementation(
+      async (_token, _client, load) => {
+        await load();
+        return CLAIMS;
+      },
+    );
+    const response = await app.request("/external-logout", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ logout_token: TOKEN }),
+    });
+    expect(response.status).toBe(200);
+    expect(mocks.endProviderSessions).toHaveBeenCalledWith(CLAIMS, {
+      externalOnly: true,
+    });
+    expect(mocks.verifyLogoutToken).toHaveBeenCalledWith(
+      TOKEN,
+      "external-client",
+      expect.any(Function),
+    );
+  });
+
+  it("refuses external discovery metadata from a different issuer", async () => {
+    vi.stubEnv("EXTERNAL_IDENTITY_ISSUER", CLAIMS.iss);
+    vi.stubEnv("EXTERNAL_OIDC_CLIENT_ID", "external-client");
+    vi.stubEnv("EXTERNAL_OIDC_CLIENT_SECRET", "external-secret");
+    mocks.getProviderMetadata.mockResolvedValue({
+      issuer: "https://other.example",
+      jwksUri: "https://other.example/keys",
+      algorithms: ["RS256"],
+    });
+    mocks.verifyLogoutToken.mockImplementation(
+      async (_token, _client, load) => {
+        await load();
+        return CLAIMS;
+      },
+    );
+    const response = await app.request("/external-logout", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ logout_token: TOKEN }),
+    });
+    expect(response.status).toBe(503);
+    expect(mocks.endProviderSessions).not.toHaveBeenCalled();
+  });
+
   it("ends the provider sessions of a valid logout token", async () => {
     const response = await postToken();
 

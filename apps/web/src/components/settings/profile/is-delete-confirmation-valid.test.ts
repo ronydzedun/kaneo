@@ -14,5 +14,6 @@ describe("isDeleteConfirmationValid", () => {
     );
     expect(isDeleteConfirmationValid("", "")).toBe(false);
     expect(isDeleteConfirmationValid("x", undefined)).toBe(false);
+    expect(isDeleteConfirmationValid("DELETE", null)).toBe(true);
   });
 });

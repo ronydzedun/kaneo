@@ -41,6 +41,10 @@ vi.mock("../../apps/api/src/auth", () => ({
   auth: { api: { getSession: mocks.getSession } },
 }));
 
+vi.mock("../../apps/api/src/oidc/has-external-access", () => ({
+  hasExternalAccess: async () => true,
+}));
+
 vi.mock("../../apps/api/src/database", async () => ({
   default: {
     transaction: async (callback: (tx: unknown) => Promise<unknown>) =>

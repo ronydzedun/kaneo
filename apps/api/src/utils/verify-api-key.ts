@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, eq, exists, gt, isNull, or, sql } from "drizzle-orm";
 import db, { schema } from "../database";
+import { externalAccessCondition } from "../oidc/external-access-condition";
 import { evaluateApiKeyUsage } from "./api-key-usage";
 import { notBannedCondition } from "./user-ban";
 
@@ -56,6 +57,7 @@ function activeApiKey(hashedKey: string) {
               sql`coalesce(${schema.apikeyTable.referenceId}, ${schema.apikeyTable.userId})`,
             ),
             notBannedCondition(),
+            externalAccessCondition(),
           ),
         ),
     ),

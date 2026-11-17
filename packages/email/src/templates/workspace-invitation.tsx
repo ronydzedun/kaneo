@@ -17,7 +17,7 @@ void React;
 export type WorkspaceInvitationEmailProps = {
   workspaceName: string;
   inviterName: string;
-  inviterEmail: string;
+  inviterEmail: string | null;
   invitationLink: string;
   to: string;
   locale?: string | null;
@@ -83,7 +83,14 @@ const WorkspaceInvitationEmail = ({
   instance,
   copy = DEFAULT_COPY,
 }: WorkspaceInvitationEmailProps) => {
-  const values = { workspaceName, inviterName, inviterEmail };
+  const values = {
+    workspaceName,
+    inviterName,
+    inviterEmail: inviterEmail ?? "",
+  };
+  const subtitle = inviterEmail
+    ? copy.subtitle
+    : copy.subtitle.replace(/\s*[(（]\s*\{\{inviterEmail\}\}\s*[)）]/g, "");
   const lang = locale ?? "en";
   const details = copy.details;
   const detailRows = details
@@ -106,7 +113,7 @@ const WorkspaceInvitationEmail = ({
     >
       <EmailIntro
         title={interpolate(copy.title, values)}
-        subtitle={interpolate(copy.subtitle, values)}
+        subtitle={interpolate(subtitle, values)}
       />
       <InvitationCard
         workspaceName={workspaceName}

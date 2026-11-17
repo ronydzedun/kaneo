@@ -519,6 +519,41 @@
       "when": 1793798733016,
       "tag": "0073_thick_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794879678860,
+      "tag": "0074_bent_malice",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1794880178326,
+      "tag": "0075_thankful_marvel_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1794881629891,
+      "tag": "0076_dashing_zaran",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1794882287665,
+      "tag": "0077_fluffy_cable",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1794906974879,
+      "tag": "0078_bumpy_rattler",
+      "breakpoints": true
     }
   ]
 }

@@ -25,6 +25,7 @@ function config(overrides: Partial<GetConfigResponse> = {}) {
     hasGoogleSignIn: false,
     hasDiscordSignIn: false,
     hasCustomOAuth: false,
+    hasExternalOidc: false,
     hasGuestAccess: false,
     disableLoginForm: false,
     customOAuthName: null,
@@ -49,6 +50,9 @@ describe("auth methods", () => {
       ),
     ).toEqual(["google", "discord", "custom"]);
     expect(getProviders(undefined)).toEqual([]);
+    expect(getProviders(config({ hasExternalOidc: true }))).toEqual([
+      "external",
+    ]);
   });
 
   it.each([

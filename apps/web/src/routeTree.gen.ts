@@ -23,6 +23,7 @@ import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthVerifyOtpRouteImport } from './routes/auth/verify-otp'
 import { Route as DeviceIndexRouteImport } from './routes/device/index'
 import { Route as DeviceApproveRouteImport } from './routes/device/approve'
+import { Route as InvitationLinkRouteImport } from './routes/invitation/link'
 import { Route as McpAuthorizeRouteImport } from './routes/mcp.authorize'
 import { Route as PublicProjectProjectIdRouteImport } from './routes/public-project.$projectId'
 import { Route as LayoutAuthenticatedDashboardRouteImport } from './routes/_layout/_authenticated/dashboard'
@@ -145,6 +146,11 @@ const DeviceApproveRoute = DeviceApproveRouteImport.update({
   id: '/approve',
   path: '/approve',
   getParentRoute: () => DeviceRoute,
+} as any)
+const InvitationLinkRoute = InvitationLinkRouteImport.update({
+  id: '/invitation/link',
+  path: '/invitation/link',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const McpAuthorizeRoute = McpAuthorizeRouteImport.update({
   id: '/mcp/authorize',
@@ -513,6 +519,7 @@ export interface FileRoutesByFullPath {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify-otp': typeof AuthVerifyOtpRoute
   '/device/approve': typeof DeviceApproveRoute
+  '/invitation/link': typeof InvitationLinkRoute
   '/mcp/authorize': typeof McpAuthorizeRoute
   '/public-project/$projectId': typeof PublicProjectProjectIdRoute
   '/device/': typeof DeviceIndexRoute
@@ -580,6 +587,7 @@ export interface FileRoutesByTo {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify-otp': typeof AuthVerifyOtpRoute
   '/device/approve': typeof DeviceApproveRoute
+  '/invitation/link': typeof InvitationLinkRoute
   '/mcp/authorize': typeof McpAuthorizeRoute
   '/public-project/$projectId': typeof PublicProjectProjectIdRoute
   '/device': typeof DeviceIndexRoute
@@ -648,6 +656,7 @@ export interface FileRoutesById {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth/verify-otp': typeof AuthVerifyOtpRoute
   '/device/approve': typeof DeviceApproveRoute
+  '/invitation/link': typeof InvitationLinkRoute
   '/mcp/authorize': typeof McpAuthorizeRoute
   '/public-project/$projectId': typeof PublicProjectProjectIdRoute
   '/device/': typeof DeviceIndexRoute
@@ -718,6 +727,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/auth/verify-otp'
     | '/device/approve'
+    | '/invitation/link'
     | '/mcp/authorize'
     | '/public-project/$projectId'
     | '/device/'
@@ -785,6 +795,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/auth/verify-otp'
     | '/device/approve'
+    | '/invitation/link'
     | '/mcp/authorize'
     | '/public-project/$projectId'
     | '/device'
@@ -852,6 +863,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/auth/verify-otp'
     | '/device/approve'
+    | '/invitation/link'
     | '/mcp/authorize'
     | '/public-project/$projectId'
     | '/device/'
@@ -915,6 +927,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   DeviceRoute: typeof DeviceRouteWithChildren
   TestErrorRoute: typeof TestErrorRoute
+  InvitationLinkRoute: typeof InvitationLinkRoute
   McpAuthorizeRoute: typeof McpAuthorizeRoute
   PublicProjectProjectIdRoute: typeof PublicProjectProjectIdRoute
   InvitationAcceptInviteIdRoute: typeof InvitationAcceptInviteIdRoute
@@ -1019,6 +1032,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/device/approve'
       preLoaderRoute: typeof DeviceApproveRouteImport
       parentRoute: typeof DeviceRoute
+    }
+    '/invitation/link': {
+      id: '/invitation/link'
+      path: '/invitation/link'
+      fullPath: '/invitation/link'
+      preLoaderRoute: typeof InvitationLinkRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/mcp/authorize': {
       id: '/mcp/authorize'
@@ -1694,6 +1714,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   DeviceRoute: DeviceRouteWithChildren,
   TestErrorRoute: TestErrorRoute,
+  InvitationLinkRoute: InvitationLinkRoute,
   McpAuthorizeRoute: McpAuthorizeRoute,
   PublicProjectProjectIdRoute: PublicProjectProjectIdRoute,
   InvitationAcceptInviteIdRoute: InvitationAcceptInviteIdRoute,

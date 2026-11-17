@@ -1,0 +1,76 @@
+name: kaneo-board
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kaneo
+      POSTGRES_USER: kaneo
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U kaneo -d kaneo']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kaneo:
+    image: ${KANEO_IMAGE:?set KANEO_IMAGE to the pinned fork image}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: kaneo
+      POSTGRES_USER: kaneo
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      AUTH_SECRET_FILE: /run/secrets/auth_secret
+      EXTERNAL_OIDC_CLIENT_SECRET_FILE: /run/secrets/oidc_client_secret
+      EXTERNAL_IDENTITY_SYNC_SECRET_FILE: /run/secrets/sync_secret
+    secrets:
+      - postgres_password
+      - auth_secret
+      - oidc_client_secret
+      - sync_secret
+    ports:
+      - "127.0.0.1:5174:5173"
+    volumes:
+      - kaneo_runtime:/var/lib/kaneo
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-Y",
+          "off",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:5173/api/health",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  auth_secret:
+    file: ./secrets/auth_secret
+  oidc_client_secret:
+    file: ./secrets/oidc_client_secret
+  sync_secret:
+    file: ./secrets/sync_secret
+
+volumes:
+  postgres_data:
+  kaneo_runtime:

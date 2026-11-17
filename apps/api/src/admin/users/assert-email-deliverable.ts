@@ -10,6 +10,12 @@ export function assertEmailDeliverable(user: AdminTargetUser) {
       message: "Guest accounts have no email address to send to.",
     });
   }
+  if (!user.email) {
+    throw new ApiError(409, {
+      code: "EMAIL_ADDRESS_MISSING",
+      message: "This account has no email address to send to.",
+    });
+  }
   if (!isSmtpConfigured()) throw notConfigured();
 }
 

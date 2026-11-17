@@ -51,7 +51,7 @@ function describeUpdate(
       key !== "updatedAt" && !same(read(target, key), read(updated, key)),
   );
   const entries: Omit<AuthAdminAuditEntry, "targetType" | "targetId">[] = [];
-  const label = updated.email ?? target.email;
+  const label = updated.email ?? target.email ?? target.name;
 
   if (changed.includes("role")) {
     entries.push({
@@ -130,7 +130,7 @@ export function describeAuthAdminAction({
     action,
     targetType: "user",
     targetId: target.id,
-    targetLabel: target.email,
+    targetLabel: target.email ?? target.name,
     metadata,
   });
 

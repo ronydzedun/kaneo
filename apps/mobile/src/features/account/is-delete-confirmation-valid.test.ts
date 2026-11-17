@@ -15,8 +15,9 @@ describe("isDeleteConfirmationValid", () => {
     ).toBe(false);
   });
 
-  it("rejects when the email is unknown", () => {
+  it("requires DELETE when the account has no email", () => {
     expect(isDeleteConfirmationValid("", undefined)).toBe(false);
     expect(isDeleteConfirmationValid("", "")).toBe(false);
+    expect(isDeleteConfirmationValid("delete", null)).toBe(true);
   });
 });

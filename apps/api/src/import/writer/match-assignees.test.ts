@@ -12,6 +12,16 @@ const members = [
 ];
 
 describe("createAssigneeMatcher", () => {
+  it("handles members without email when importing by name", () => {
+    const matcher = createAssigneeMatcher([
+      { id: "u", name: "No Email", email: null },
+    ]);
+    expect(matcher.match({ name: "No Email" })).toBe("u");
+    expect(
+      matcher.match({ name: "No Email", email: "other@example.com" }),
+    ).toBeNull();
+  });
+
   it("matches emails case-insensitively", () => {
     const matcher = createAssigneeMatcher(members);
     expect(matcher.match({ email: " ana@example.COM ", name: "A" })).toBe(

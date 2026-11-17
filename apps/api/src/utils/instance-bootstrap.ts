@@ -1,21 +1,34 @@
-import { and, asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, or, sql } from "drizzle-orm";
 import db, { schema } from "../database";
 import { instanceAdminRoleSql } from "./instance-admin-role";
 
 export const nonAnonymousUser = sql`${schema.userTable.isAnonymous} IS NOT TRUE`;
 
-export async function hasRegisteredUsers(): Promise<boolean> {
-  const [row] = await db
+const locallyRegisteredUser = and(
+  nonAnonymousUser,
+  sql`NOT EXISTS (SELECT 1 FROM ${schema.externalIdentityTable} WHERE ${schema.externalIdentityTable.userId} = ${schema.userTable.id})`,
+);
+
+export async function hasRegisteredUsers(
+  database: Pick<typeof db, "select"> = db,
+): Promise<boolean> {
+  const [row] = await database
     .select({ value: count() })
     .from(schema.userTable)
-    .where(nonAnonymousUser);
+    .where(
+      or(
+        locallyRegisteredUser,
+        and(nonAnonymousUser, instanceAdminRoleSql(schema.userTable.role)),
+      ),
+    );
   return (row?.value ?? 0) > 0;
 }
 
 export async function promoteInitialAdministrator(
   userId: string,
+  database: Pick<typeof db, "transaction"> = db,
 ): Promise<void> {
-  await db.transaction(async (tx) => {
+  await database.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(2026)`);
     const [admin] = await tx
       .select({ id: schema.userTable.id })
@@ -31,7 +44,7 @@ export async function promoteInitialAdministrator(
     const [first] = await tx
       .select({ id: schema.userTable.id })
       .from(schema.userTable)
-      .where(nonAnonymousUser)
+      .where(locallyRegisteredUser)
       .orderBy(asc(schema.userTable.createdAt), asc(schema.userTable.id))
       .limit(1);
     if (first?.id !== userId) return;

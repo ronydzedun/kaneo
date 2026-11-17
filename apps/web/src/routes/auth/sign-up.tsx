@@ -80,7 +80,9 @@ function SignUp() {
   const destination = invitationId
     ? `/invitation/accept/${invitationId}`
     : "/dashboard";
-  const baseUrl = import.meta.env.VITE_CLIENT_URL ?? window.location.origin;
+  const baseUrl = (
+    import.meta.env.VITE_CLIENT_URL ?? window.location.origin
+  ).replace(/\/$/, "");
   const selfServiceAllowed =
     !config?.disableRegistration ||
     Boolean(invitationId) ||

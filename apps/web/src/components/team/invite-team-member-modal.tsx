@@ -5,12 +5,17 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod/v4";
+import {
+  createInvitationLink,
+  revokeInvitationLink,
+} from "@/fetchers/invitation/invitation-link";
 import useInviteWorkspaceUser from "@/hooks/mutations/workspace-user/use-invite-workspace-user";
 import useGetProjects from "@/hooks/queries/project/use-get-projects";
 import useGetMyProjectAccess from "@/hooks/queries/workspace-users/use-get-my-project-access";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useWorkspacePermission } from "@/hooks/use-workspace-permission";
 import { toast } from "@/lib/toast";
+import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -63,6 +68,8 @@ function InviteTeamMemberModal({ open, onClose }: Props) {
     id: string;
     email: string;
   } | null>(null);
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [linkPending, setLinkPending] = useState(false);
   const myAccess = useGetMyProjectAccess(workspaceId ?? "", open);
   const isMyAccessPending = myAccess.isPending;
   const inviterLimited =
@@ -150,9 +157,37 @@ function InviteTeamMemberModal({ open, onClose }: Props) {
   const resetAfterClose = (isOpen: boolean) => {
     if (isOpen) return;
     setCreatedInvitation(null);
+    setLinkToken(null);
     form.reset();
     setProjectAccess(null);
     setShowProjectAccessError(false);
+  };
+
+  const createLink = async () => {
+    if (!workspaceId || !canInvite) return;
+    const access = toProjectAccessRequest(
+      projectAccess,
+      (projects ?? []).map((project) => project.id),
+    );
+    if (!isProjectAccessComplete(access)) {
+      setShowProjectAccessError(true);
+      return;
+    }
+    setLinkPending(true);
+    try {
+      const result = await createInvitationLink({
+        workspaceId,
+        role: "member",
+        ...access,
+      });
+      setLinkToken(result.token);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("team:inviteModal.error"),
+      );
+    } finally {
+      setLinkPending(false);
+    }
   };
 
   return (
@@ -166,13 +201,72 @@ function InviteTeamMemberModal({ open, onClose }: Props) {
       <DialogPopup className="w-full max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {createdInvitation
+            {createdInvitation || linkToken
               ? t("team:inviteModal.createdTitle")
               : t("team:inviteModal.title")}
           </DialogTitle>
         </DialogHeader>
 
-        {createdInvitation ? (
+        {linkToken ? (
+          <>
+            <DialogPanel className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {t("team:inviteModal.linkDescription")}
+              </p>
+              <Input
+                readOnly
+                value={`${window.location.origin}/invitation/link#${linkToken}`}
+                aria-label={t("team:invitations.linkLabel")}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (
+                    await copyToClipboard(
+                      `${window.location.origin}/invitation/link#${linkToken}`,
+                    )
+                  )
+                    toast.success(t("team:invitations.linkCopied"));
+                  else toast.error(t("team:invitations.copyFailed"));
+                }}
+              >
+                {t("team:invitations.copyLink")}
+              </Button>
+            </DialogPanel>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={linkPending}
+                onClick={async () => {
+                  if (!workspaceId) return;
+                  setLinkPending(true);
+                  try {
+                    await revokeInvitationLink(workspaceId, linkToken);
+                    setLinkToken(null);
+                    toast.success(t("team:inviteModal.linkRevoked"));
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : t("team:inviteModal.error"),
+                    );
+                  } finally {
+                    setLinkPending(false);
+                  }
+                }}
+              >
+                {t("team:inviteModal.linkRevoke")}
+              </Button>
+              <Button size="sm" onClick={closeModal}>
+                {t("team:inviteModal.done")}
+              </Button>
+            </DialogFooter>
+          </>
+        ) : createdInvitation ? (
           <>
             <DialogPanel className="space-y-3">
               <p className="text-sm text-muted-foreground">
@@ -233,6 +327,20 @@ function InviteTeamMemberModal({ open, onClose }: Props) {
                 >
                   {t("common:actions.cancel")}
                 </DialogClose>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    !workspaceId ||
+                    !canInvite ||
+                    isMyAccessPending ||
+                    linkPending
+                  }
+                  onClick={createLink}
+                >
+                  {t("team:inviteModal.createLink")}
+                </Button>
                 <Button
                   type="submit"
                   size="sm"

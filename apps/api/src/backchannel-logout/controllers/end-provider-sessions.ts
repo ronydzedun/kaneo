@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, exists, inArray, isNull } from "drizzle-orm";
 import db, { schema } from "../../database";
 import { revokeSessionConnections } from "../../ws";
 import { LogoutTokenRejected } from "../errors";
@@ -44,30 +44,80 @@ async function findCustomAccountUsers(tx: Transaction, accountId: string) {
   return [...new Set(accounts.map((account) => account.userId))];
 }
 
+async function findExternalAccountUsers(
+  tx: Transaction,
+  issuer: string,
+  subject?: string,
+  sid?: string,
+) {
+  const identities = await tx
+    .select({ userId: schema.externalIdentityTable.userId })
+    .from(schema.externalIdentityTable)
+    .where(
+      and(
+        eq(schema.externalIdentityTable.issuer, issuer),
+        subject === undefined
+          ? undefined
+          : eq(schema.externalIdentityTable.subject, subject),
+        sid === undefined
+          ? undefined
+          : exists(
+              tx
+                .select({ id: schema.sessionTable.id })
+                .from(schema.sessionTable)
+                .where(
+                  and(
+                    eq(
+                      schema.sessionTable.userId,
+                      schema.externalIdentityTable.userId,
+                    ),
+                    eq(schema.sessionTable.oidcSid, sid),
+                    eq(schema.sessionTable.oidcIssuer, issuer),
+                  ),
+                ),
+            ),
+      ),
+    );
+  return [...new Set(identities.map((identity) => identity.userId))];
+}
+
 async function closeEndedConnections(ended: Map<string, string[]>) {
   for (const [userId, sessionIds] of ended) {
     await revokeSessionConnections(userId, sessionIds);
   }
 }
 
-export async function endProviderSessions(claims: LogoutTokenClaims) {
+export async function endProviderSessions(
+  claims: LogoutTokenClaims,
+  options: { externalOnly?: boolean } = {},
+  database: Pick<typeof db, "transaction"> = db,
+  closeConnections: (
+    ended: Map<string, string[]>,
+  ) => Promise<void> = closeEndedConnections,
+) {
   const { sid, sub } = claims;
   if (sid === undefined && sub === undefined) {
     throw new Error("A logout needs a session ID or a subject");
   }
 
-  const endedSessions = await db.transaction(async (tx) => {
+  const endedSessions = await database.transaction(async (tx) => {
     if (!(await claimLogoutToken(tx, claims))) {
       throw new LogoutTokenRejected("the logout token was used before");
     }
-    const userIds =
-      sub === undefined ? undefined : await findCustomAccountUsers(tx, sub);
+    const userIds = options.externalOnly
+      ? await findExternalAccountUsers(tx, claims.iss, sub, sid)
+      : sub === undefined
+        ? undefined
+        : await findCustomAccountUsers(tx, sub);
     if (userIds?.length === 0) return new Map<string, string[]>();
     const ended = await tx
       .delete(schema.sessionTable)
       .where(
         and(
           sid === undefined ? undefined : eq(schema.sessionTable.oidcSid, sid),
+          options.externalOnly
+            ? eq(schema.sessionTable.oidcIssuer, claims.iss)
+            : isNull(schema.sessionTable.oidcIssuer),
           userIds === undefined
             ? undefined
             : inArray(schema.sessionTable.userId, userIds),
@@ -87,7 +137,7 @@ export async function endProviderSessions(claims: LogoutTokenClaims) {
     return byUser;
   });
 
-  await closeEndedConnections(endedSessions).catch((error) => {
+  await closeConnections(endedSessions).catch((error) => {
     console.error(
       "Closing realtime connections after a back-channel logout failed:",
       error,

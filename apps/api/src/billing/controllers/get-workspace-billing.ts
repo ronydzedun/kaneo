@@ -58,6 +58,11 @@ export async function resolveTrialEndsAt(
       return new Date(earlier.trialEndsAt);
     }
 
+    if (!owner.email) {
+      throw new HTTPException(409, {
+        message: "An email address is required to claim a billing trial.",
+      });
+    }
     return claimTrial(owner.email);
   }
 

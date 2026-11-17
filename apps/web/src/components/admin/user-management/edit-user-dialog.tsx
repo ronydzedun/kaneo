@@ -114,7 +114,6 @@ export function EditUserDialog({
                   id="admin-user-email"
                   name="email"
                   type="email"
-                  required
                   value={values.email}
                   onChange={(event) =>
                     setValues((current) => ({

@@ -53,6 +53,7 @@ export async function resolveImportAssignees(
     );
   const byEmail = new Map<string, Set<string>>();
   for (const user of emailUsers) {
+    if (!user.email) continue;
     const email = user.email.toLowerCase();
     const matches = byEmail.get(email) ?? new Set<string>();
     matches.add(user.id);

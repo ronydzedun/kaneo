@@ -29,9 +29,13 @@ const m = vi.hoisted(() => ({
   projectAccess: vi.fn(),
   inaccessible: vi.fn(),
   sync: vi.fn(),
+  deniedExternal: vi.fn(),
   redis: false,
   publish: vi.fn(),
   on: vi.fn(),
+}));
+vi.mock("../../../apps/api/src/ws/find-denied-external-users", () => ({
+  findDeniedExternalUsers: m.deniedExternal,
 }));
 vi.mock(
   "../../../apps/api/src/ws/workspace-access",
@@ -120,6 +124,7 @@ beforeEach(() => {
   m.inaccessible.mockResolvedValue([]);
   m.lookup.mockResolvedValue([{ workspaceId: "old" }]);
   m.publish.mockResolvedValue(1);
+  m.deniedExternal.mockResolvedValue(new Set());
 });
 afterEach(async () => {
   await shutdownWebSocketAdapter();
@@ -128,6 +133,26 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 describe("project move revocation", () => {
+  it("closes sockets for expired external access on the periodic check", async () => {
+    vi.useFakeTimers();
+    await initializeWebSocketAdapter();
+    const denied = connect("project", "old", "denied");
+    const allowed = connect("other", "old", "allowed");
+    m.deniedExternal.mockResolvedValue(new Set(["denied"]));
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(denied.close).toHaveBeenCalledWith(1008, "User access revoked");
+    expect(allowed.close).not.toHaveBeenCalled();
+  });
+
+  it("closes sockets when external access cannot be verified", async () => {
+    vi.useFakeTimers();
+    await initializeWebSocketAdapter();
+    const socket = connect();
+    m.deniedExternal.mockRejectedValueOnce(new Error("Database unavailable"));
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(socket.close).toHaveBeenCalledWith(1008, "User access revoked");
+  });
+
   it("closes local connections and discards queued updates without touching another project", async () => {
     vi.useFakeTimers();
     await initializeWebSocketAdapter();

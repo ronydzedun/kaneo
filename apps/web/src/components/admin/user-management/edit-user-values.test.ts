@@ -26,6 +26,14 @@ describe("getEditUserValues", () => {
 });
 
 describe("buildUserUpdate", () => {
+  it("allows editing an account without inventing an email", () => {
+    const user = { ...ada, email: null };
+    expect(getEditUserValues(user).email).toBe("");
+    expect(
+      buildUserUpdate(user, { name: "Ada", email: "", role: "admin" }, "other"),
+    ).toEqual({ userId: "ada", name: "Ada" });
+  });
+
   it("trims the name and normalizes the email", () => {
     expect(
       buildUserUpdate(

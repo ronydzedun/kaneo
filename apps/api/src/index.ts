@@ -24,6 +24,7 @@ import { forwardAuthRequest } from "./utils/forward-auth-request";
 import { organizationRoutes } from "./auth-openapi";
 import {
   handleBackchannelLogoutRoute,
+  handleExternalBackchannelLogoutRoute,
   MAX_LOGOUT_REQUEST_BYTES,
   noStore,
 } from "./backchannel-logout";
@@ -65,6 +66,12 @@ import mcpRoutes, { mcpWellKnownRoutes } from "./mcp";
 import { migrateColumns } from "./migrations/column-migration";
 import notification from "./notification";
 import notificationPreferences from "./notification-preferences";
+import { nativeExternalAccessGuard } from "./oidc/native-external-access-guard";
+import syncExternalIdentity from "./oidc/sync-route";
+import {
+  invitationLinkAcceptance,
+  workspaceInvitationLinks,
+} from "./invitation/link/routes";
 import oauth from "./oauth";
 import { createRoute, errorResponse, jsonResponse, z } from "./openapi";
 import { initializePlugins, integrationPlugins } from "./plugins";
@@ -460,6 +467,12 @@ export function createApp() {
     boundedRequestBody(MAX_LOGOUT_REQUEST_BYTES),
     handleBackchannelLogoutRoute,
   );
+  api.post(
+    "/auth/external-oidc/backchannel-logout",
+    noStore,
+    boundedRequestBody(MAX_LOGOUT_REQUEST_BYTES),
+    handleExternalBackchannelLogoutRoute,
+  );
 
   const invitationPublicApi = api.get("/invitation/public/:id", async (c) => {
     const { id } = c.req.param();
@@ -467,6 +480,7 @@ export function createApp() {
     return c.json(result);
   });
 
+  api.use("/auth/*", nativeExternalAccessGuard);
   api.use("/auth/*", async (c, next) => {
     const apiKeyHeader = c.req.header("x-api-key")?.trim();
     if (!apiKeyHeader) return next();
@@ -780,6 +794,7 @@ export function createApp() {
   );
 
   api.route("/", mcpRoutes);
+  api.route("/identity-sync", syncExternalIdentity);
 
   api.use("*", async (c, next) => {
     const path = c.req.path;
@@ -871,6 +886,14 @@ export function createApp() {
   const workflowRuleApi = api.route("/workflow-rule", workflowRule);
   const invitationApi = api.route("/invitation", invitation);
   const workspaceApi = api.route("/workspace", workspace);
+  const workspaceInvitationLinksApi = api.route(
+    "/workspace",
+    workspaceInvitationLinks,
+  );
+  const invitationLinkAcceptanceApi = api.route(
+    "/invitation",
+    invitationLinkAcceptance,
+  );
   const customFieldApi = api.route("/custom-field", customField);
   const importApi = api.route("/import", importRoutes);
   const userApi = api.route("/user", user);
@@ -995,6 +1018,7 @@ export function createApp() {
     giteaIntegrationApi,
     gitlabIntegrationApi,
     invitationApi,
+    invitationLinkAcceptanceApi,
     invitationPublicApi,
     labelApi,
     notificationApi,
@@ -1013,6 +1037,7 @@ export function createApp() {
     adminApi,
     workflowRuleApi,
     workspaceApi,
+    workspaceInvitationLinksApi,
     customFieldApi,
     importApi,
     oauthApi,
@@ -1130,6 +1155,7 @@ const {
   giteaIntegrationApi,
   gitlabIntegrationApi,
   invitationApi,
+  invitationLinkAcceptanceApi,
   invitationPublicApi,
   labelApi,
   mattermostIntegrationApi,
@@ -1148,6 +1174,7 @@ const {
   adminApi,
   workflowRuleApi,
   workspaceApi,
+  workspaceInvitationLinksApi,
   customFieldApi,
   importApi,
   oauthApi,
@@ -1190,7 +1217,9 @@ export type AppType =
   | typeof externalLinkApi
   | typeof workflowRuleApi
   | typeof invitationApi
+  | typeof invitationLinkAcceptanceApi
   | typeof workspaceApi
+  | typeof workspaceInvitationLinksApi
   | typeof customFieldApi
   | typeof importApi
   | typeof userApi

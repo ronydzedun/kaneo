@@ -28,7 +28,7 @@ export async function clearEmailVerificationOnAdminChange(
   const nextEmail = String(data.email ?? "")
     .trim()
     .toLowerCase();
-  if (nextEmail === current.email.trim().toLowerCase()) {
+  if (nextEmail === current.email?.trim().toLowerCase()) {
     return;
   }
   return { data: { ...data, emailVerified: false } };

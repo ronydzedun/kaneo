@@ -8,6 +8,7 @@ import {
 } from "@kaneo/email";
 import { createEmailVerificationToken } from "better-auth/api";
 import { auth } from "../../auth";
+import { ApiError } from "../../errors/api-error";
 import { accountEmailSubject } from "./account-email-subjects";
 import type { AdminTargetUser } from "./find-admin-target-user";
 
@@ -36,6 +37,11 @@ export async function emailPasswordLink(
   user: Recipient,
   purpose: AccountPasswordPurpose,
 ): Promise<EmailResult> {
+  if (!user.email)
+    throw new ApiError(409, {
+      code: "EMAIL_ADDRESS_MISSING",
+      message: "This account has no email address to send to.",
+    });
   if (!isSmtpConfigured()) return notConfigured;
   const context = await auth.$context;
   const seconds =
@@ -67,6 +73,11 @@ export async function emailPasswordLink(
 export async function emailVerificationLink(
   user: Recipient,
 ): Promise<EmailResult> {
+  if (!user.email)
+    throw new ApiError(409, {
+      code: "EMAIL_ADDRESS_MISSING",
+      message: "This account has no email address to send to.",
+    });
   if (!isSmtpConfigured()) return notConfigured;
   const context = await auth.$context;
   const token = await createEmailVerificationToken(

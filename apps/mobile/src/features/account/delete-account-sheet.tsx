@@ -25,7 +25,7 @@ export function DeleteAccountSheet({
   onClose,
 }: {
   visible: boolean;
-  email: string;
+  email: string | null;
   onClose: () => void;
 }) {
   const { t } = useTranslation(["mobile"]);
@@ -78,13 +78,15 @@ export function DeleteAccountSheet({
           {t("mobile:account.deleteAccount.modalDescription")}
         </Txt>
         <TextField
-          label={t("mobile:account.deleteAccount.confirmLabel", { email })}
+          label={t("mobile:account.deleteAccount.confirmLabel", {
+            email: email || "DELETE",
+          })}
           value={confirmation}
           onChangeText={setConfirmation}
-          placeholder={email}
+          placeholder={email || "DELETE"}
           autoCapitalize="none"
           autoCorrect={false}
-          keyboardType="email-address"
+          keyboardType={email ? "email-address" : "default"}
           editable={!busy}
         />
         <TextField

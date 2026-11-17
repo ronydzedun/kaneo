@@ -10,7 +10,7 @@ export type Session = {
   token: string;
   userId: string;
   userName: string;
-  userEmail: string;
+  userEmail: string | null;
 };
 
 export type AppPreferences = {
@@ -94,7 +94,7 @@ export const sessionStore = {
     set({ session });
   },
 
-  async updateUser(name: string, email: string) {
+  async updateUser(name: string, email: string | null) {
     if (!state.session) return;
     await this.save({ ...state.session, userName: name, userEmail: email });
   },

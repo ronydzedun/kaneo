@@ -17,7 +17,7 @@ import useDeleteAccount, {
 import { toast } from "@/lib/toast";
 
 type DeleteAccountSectionProps = {
-  email: string | undefined;
+  email: string | null | undefined;
 };
 
 export function DeleteAccountSection({ email }: DeleteAccountSectionProps) {
@@ -99,7 +99,7 @@ export function DeleteAccountSection({ email }: DeleteAccountSectionProps) {
         <div className="space-y-2">
           <Label htmlFor={inputId}>
             {t("settings:informationPage.deleteAccount.confirmLabel", {
-              email: email ?? "",
+              email: email || "DELETE",
             })}
           </Label>
           <Input
@@ -110,7 +110,7 @@ export function DeleteAccountSection({ email }: DeleteAccountSectionProps) {
             disabled={isPending}
             value={confirmation}
             onChange={(event) => setConfirmation(event.target.value)}
-            placeholder={email ?? ""}
+            placeholder={email || "DELETE"}
           />
         </div>
       </ConfirmDialog>

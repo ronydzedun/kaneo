@@ -158,7 +158,7 @@ function AcceptInvitation() {
   }
 
   const isRecipient =
-    session.user.email.toLowerCase() === invitation.email.toLowerCase();
+    session.user.email?.toLowerCase() === invitation.email.toLowerCase();
 
   const accept = async () => {
     setIsAccepting(true);

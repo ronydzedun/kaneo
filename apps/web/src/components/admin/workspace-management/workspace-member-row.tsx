@@ -38,7 +38,7 @@ function WorkspaceMemberRow({
 }: Props) {
   const { t } = useTranslation();
   const isOwner = isWorkspaceOwnerRole(member.role);
-  const name = member.name || member.email;
+  const name = member.name || member.email || member.userId;
 
   return (
     <div

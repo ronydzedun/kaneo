@@ -27,6 +27,37 @@ export function useProviderSignIn({
       setPending(provider);
       const options = { headers: captcha.headers };
       try {
+        if (provider === "external") {
+          const destination = new URL(callbackURL, window.location.origin);
+          const client = new URL(
+            import.meta.env.VITE_CLIENT_URL || window.location.origin,
+          );
+          if (destination.origin !== client.origin)
+            throw new Error("Invalid return URL");
+          const apiUrl =
+            import.meta.env.VITE_API_URL || "http://localhost:1337";
+          const response = await fetch(
+            new URL("/api/auth/external-oidc/start", apiUrl),
+            {
+              method: "POST",
+              credentials: "include",
+              headers: {
+                "content-type": "application/json",
+                ...captcha.headers,
+              },
+              body: JSON.stringify({
+                returnTo: `${destination.pathname}${destination.search}${destination.hash}`,
+              }),
+            },
+          );
+          if (!response.ok)
+            throw new Error(
+              t("auth:providers.error", { provider: getName(provider) }),
+            );
+          const data: { url: string } = await response.json();
+          window.location.assign(data.url);
+          return true;
+        }
         const result = await authClient.signIn.social(
           { provider, callbackURL, errorCallbackURL },
           options,

@@ -1,6 +1,11 @@
 import type { GetConfigResponse } from "@/fetchers/config/get-config";
 
-export type AuthProvider = "google" | "github" | "discord" | "custom";
+export type AuthProvider =
+  | "google"
+  | "github"
+  | "discord"
+  | "custom"
+  | "external";
 export type EmailMethod = "code" | "password";
 export type SignInFooter =
   | "createAccount"
@@ -18,6 +23,7 @@ export function getProviders(config: Config): AuthProvider[] {
     ["github", config.hasGithubSignIn],
     ["discord", config.hasDiscordSignIn],
     ["custom", config.hasCustomOAuth],
+    ["external", config.hasExternalOidc],
   ];
   return providers.filter(([, enabled]) => enabled).map(([id]) => id);
 }
@@ -37,7 +43,10 @@ export function getSignUpEmailMethod(
 }
 
 export function isSsoOnly(providers: AuthProvider[]) {
-  return providers.length === 1 && providers[0] === "custom";
+  return (
+    providers.length === 1 &&
+    (providers[0] === "custom" || providers[0] === "external")
+  );
 }
 
 export function getSignInFooter(

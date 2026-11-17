@@ -1,6 +1,10 @@
 import type { ImportedPerson } from "@kaneo/importers";
 
-export type AssignableMember = { id: string; name: string; email: string };
+export type AssignableMember = {
+  id: string;
+  name: string;
+  email: string | null;
+};
 
 export type AssigneeMatcher = {
   match(person: ImportedPerson | undefined): string | null;

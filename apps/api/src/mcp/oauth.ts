@@ -3,6 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { and, eq, gt } from "drizzle-orm";
 import db from "../database";
 import { sessionTable, userTable } from "../database/schema";
+import { externalAccessCondition } from "../oidc/external-access-condition";
 import { notBannedCondition } from "../utils/user-ban";
 import { consumeState, getState, putState } from "./oauth-store";
 
@@ -130,12 +131,24 @@ export async function exchangeCode(
     const [user] = await tx
       .select({ id: userTable.id })
       .from(userTable)
-      .where(and(eq(userTable.id, stored.userId), notBannedCondition()))
+      .where(
+        and(
+          eq(userTable.id, stored.userId),
+          notBannedCondition(),
+          externalAccessCondition(stored.sessionId),
+        ),
+      )
       .limit(1)
       .for("update");
     if (!user) return null;
     const [approver] = await tx
-      .select({ id: sessionTable.id, expiresAt: sessionTable.expiresAt })
+      .select({
+        id: sessionTable.id,
+        expiresAt: sessionTable.expiresAt,
+        externalAccessEpoch: sessionTable.externalAccessEpoch,
+        oidcIssuer: sessionTable.oidcIssuer,
+        oidcSid: sessionTable.oidcSid,
+      })
       .from(sessionTable)
       .where(
         and(
@@ -157,6 +170,9 @@ export async function exchangeCode(
       expiresAt: new Date(Date.now() + expiresIn * 1000),
       createdAt: new Date(),
       updatedAt: new Date(),
+      externalAccessEpoch: approver.externalAccessEpoch,
+      oidcIssuer: approver.oidcIssuer,
+      oidcSid: approver.oidcSid,
     });
     return { accessToken: sessionToken, expiresIn };
   });

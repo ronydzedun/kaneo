@@ -1,0 +1,1 @@
+ALTER TABLE "session" ADD COLUMN "oidc_issuer" text;

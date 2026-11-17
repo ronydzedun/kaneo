@@ -95,7 +95,7 @@ describe("GET /api/user/me", () => {
     });
   });
 
-  it("returns 404 when the authenticated user no longer exists", async () => {
+  it("rejects a session when the authenticated user no longer exists", async () => {
     const { user } = await createWorkspaceMember();
     // Preserve the authenticated identity to simulate deletion before the lookup.
     mockAuthenticatedSession(user);
@@ -104,10 +104,10 @@ describe("GET /api/user/me", () => {
 
     const response = await app.request("/api/user/me");
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(401);
     expect(await readErrorBody(response)).toMatchObject({
-      message: "User not found",
-      code: "NOT_FOUND",
+      message: "Unauthorized",
+      code: "UNAUTHORIZED",
     });
   });
 });

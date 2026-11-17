@@ -1,6 +1,7 @@
 import { isSmtpConfigured } from "@kaneo/email";
 import { config } from "dotenv-mono";
 import { isBillingEnabled } from "../billing/config";
+import { getExternalOidcConfig } from "../oidc/login-config";
 import {
   DEFAULT_STORED_SETTINGS,
   type InstanceSettings,
@@ -53,6 +54,7 @@ function getSettings(
     hasCustomOAuth:
       Boolean(process.env.CUSTOM_OAUTH_CLIENT_ID) &&
       Boolean(resolveFileSecret("CUSTOM_OAUTH_CLIENT_SECRET")),
+    hasExternalOidc: Boolean(getExternalOidcConfig()),
     // Mirrors `isGuestAccessAvailable`.
     hasGuestAccess:
       process.env.DISABLE_GUEST_ACCESS !== "true" &&

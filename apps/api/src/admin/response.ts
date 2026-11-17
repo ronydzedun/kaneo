@@ -6,7 +6,7 @@ export const adminUserSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    email: z.string(),
+    email: z.string().nullable(),
     emailVerified: z.boolean(),
     isAnonymous: z.boolean(),
     image: z.string().nullable(),
@@ -39,7 +39,7 @@ export const adminUserListSchema = z
 const adminWorkspaceOwnerSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string(),
+  email: z.string().nullable(),
 });
 
 export const adminWorkspaceSchema = z
@@ -91,7 +91,7 @@ export const adminWorkspaceMemberSchema = z
   .object({
     userId: z.string(),
     name: z.string(),
-    email: z.string(),
+    email: z.string().nullable(),
     image: z.string().nullable(),
     role: z.string(),
     joinedAt: isoTimestamp,

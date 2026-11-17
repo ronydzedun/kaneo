@@ -2,7 +2,7 @@
 export type AuditUserSnapshot = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   role: string | null;
   banned: boolean | null;
   banReason: string | null;

@@ -19,20 +19,21 @@ export type InstanceConfig = {
   hasGoogleSignIn?: boolean;
   hasDiscordSignIn?: boolean;
   hasCustomOAuth?: boolean;
+  hasExternalOidc?: boolean;
   disableLoginForm?: boolean;
 };
 
 export type CurrentUser = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   image?: string | null;
   role?: string | null;
 };
 
 export type AuthTokenResponse = {
   token?: string | null;
-  user?: { id: string; name?: string; email?: string } | null;
+  user?: { id: string; name?: string; email?: string | null } | null;
 };
 
 export type DeviceCodeResponse = {
@@ -87,7 +88,7 @@ export type WorkspaceCapabilities = Record<
 export type WorkspaceMember = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   image?: string | null;
   role: string;
 };
@@ -107,7 +108,7 @@ export type OrganizationMember = {
   user?: {
     id?: string;
     name?: string;
-    email?: string;
+    email?: string | null;
     image?: string | null;
   } | null;
 };

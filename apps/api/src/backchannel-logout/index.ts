@@ -6,6 +6,7 @@ import { LogoutProviderUnavailable, LogoutTokenRejected } from "./errors";
 import { providerJwks } from "./provider-jwks";
 import { getProviderMetadata } from "./provider-metadata";
 import { verifyLogoutToken } from "./verify-logout-token";
+import { getExternalOidcConfig } from "../oidc/login-config";
 
 export const MAX_LOGOUT_REQUEST_BYTES = 16 * 1024;
 
@@ -37,15 +38,40 @@ async function loadLogoutTokenProvider(discoveryUrl: string) {
 export async function handleBackchannelLogoutRoute(c: Context) {
   const config = resolveBackchannelLogoutConfig();
   if (!config.enabled) return notFoundResponse();
+  return handleLogout(c, config.discoveryUrl, config.clientId);
+}
 
+export async function handleExternalBackchannelLogoutRoute(c: Context) {
+  const config = getExternalOidcConfig();
+  if (!config) return notFoundResponse();
+  const discovery = `${config.issuer.replace(/\/$/, "")}/.well-known/openid-configuration`;
+  return handleLogout(c, discovery, config.clientId, config.issuer);
+}
+
+async function handleLogout(
+  c: Context,
+  discoveryUrl: string,
+  clientId: string,
+  expectedIssuer?: string,
+) {
   const token = await readLogoutToken(c);
   if (!token) return c.json({ error: "invalid_request" }, 400);
 
   try {
-    const claims = await verifyLogoutToken(token, config.clientId, () =>
-      loadLogoutTokenProvider(config.discoveryUrl),
-    );
-    await endProviderSessions(claims);
+    const claims = await verifyLogoutToken(token, clientId, async () => {
+      const provider = await loadLogoutTokenProvider(discoveryUrl);
+      if (expectedIssuer && provider.issuer !== expectedIssuer) {
+        throw new LogoutProviderUnavailable(
+          "the discovery issuer does not match",
+        );
+      }
+      return provider;
+    });
+    if (expectedIssuer) {
+      await endProviderSessions(claims, { externalOnly: true });
+    } else {
+      await endProviderSessions(claims);
+    }
   } catch (error) {
     if (error instanceof LogoutProviderUnavailable) {
       console.warn(`Back-channel logout is unavailable: ${error.message}`);

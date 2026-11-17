@@ -35,7 +35,7 @@ export const userTable = pgTable("user", {
     .$defaultFn(() => createId())
     .primaryKey(),
   name: text("name").notNull(),
-  email: text("email").notNull().unique(),
+  email: text("email").unique(),
   emailVerified: boolean("email_verified")
     .$defaultFn(() => false)
     .notNull(),
@@ -59,6 +59,38 @@ export const userTable = pgTable("user", {
     .notNull(),
 });
 
+export const externalIdentityTable = pgTable(
+  "external_identity",
+  {
+    id: text("id")
+      .$defaultFn(() => createId())
+      .primaryKey(),
+    issuer: text("issuer").notNull(),
+    subject: text("subject").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => userTable.id, { onDelete: "cascade" }),
+    accessGranted: boolean("access_granted").default(false).notNull(),
+    accessValidUntil: timestamp("access_valid_until", { mode: "date" }),
+    accessEpoch: integer("access_epoch").default(0).notNull(),
+    revision: integer("revision").default(0).notNull(),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .default(utcNow)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+      .default(utcNow)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    unique("external_identity_issuer_subject_unique").on(
+      table.issuer,
+      table.subject,
+    ),
+    index("external_identity_user_idx").on(table.userId),
+  ],
+);
+
 export const sessionTable = pgTable(
   "session",
   {
@@ -80,6 +112,8 @@ export const sessionTable = pgTable(
     activeTeamId: text("active_team_id"),
     impersonatedBy: text("impersonated_by"),
     oidcSid: text("oidc_sid"),
+    oidcIssuer: text("oidc_issuer"),
+    externalAccessEpoch: integer("external_access_epoch"),
   },
   (table) => [
     index("session_userId_idx").on(table.userId),
@@ -467,6 +501,29 @@ export const invitationTable = pgTable(
     index("invitation_email_idx").on(table.email),
     index("invitation_inviterId_idx").on(table.inviterId),
   ],
+);
+
+export const invitationLinkTable = pgTable(
+  "invitation_link",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaceTable.id, { onDelete: "cascade" }),
+    inviterId: text("inviter_id")
+      .notNull()
+      .references(() => userTable.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    projectAccess: text("project_access").notNull(),
+    projectIds: text("project_ids").array().notNull(),
+    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .default(utcNow)
+      .notNull(),
+    usedAt: timestamp("used_at", { mode: "date" }),
+    revokedAt: timestamp("revoked_at", { mode: "date" }),
+  },
+  (table) => [index("invitation_link_workspace_idx").on(table.workspaceId)],
 );
 
 export const workspaceRoleTable = pgTable(

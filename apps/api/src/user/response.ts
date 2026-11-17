@@ -24,7 +24,7 @@ export const currentUserSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    email: z.string(),
+    email: z.string().nullable(),
     image: z.string().nullable(),
     role: z.string().nullable(),
     managedProfileFields: z.array(z.enum(MANAGED_PROFILE_FIELDS)).openapi({

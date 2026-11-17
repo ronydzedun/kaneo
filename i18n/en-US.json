@@ -4049,6 +4049,14 @@
 			"error": "Failed to invite team member",
 			"createdTitle": "Invitation created",
 			"shareLinkDescription": "Share this link with {{email}} so they can join the workspace.",
+			"createLink": "Create link without email",
+			"linkDescription": "Share this single-use link securely. It expires after seven days.",
+			"linkRevoke": "Revoke link",
+			"linkRevoked": "Invitation link revoked",
+			"linkAcceptTitle": "Join workspace",
+			"linkAcceptDescription": "Sign in before accepting this single-use invitation.",
+			"linkAccept": "Accept invitation",
+			"linkAcceptError": "This invitation is invalid, expired or unavailable.",
 			"done": "Done"
 		},
 		"membersTable": {
