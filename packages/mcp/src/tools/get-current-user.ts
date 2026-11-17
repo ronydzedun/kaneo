@@ -4,7 +4,8 @@ import type { ToolClient } from "./register.js";
 const currentUserSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string(),
+  // Accounts provisioned by an external identity provider have no address.
+  email: z.string().nullable(),
   role: z.string().nullish(),
 });
 

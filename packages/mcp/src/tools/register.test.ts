@@ -49,6 +49,35 @@ describe("registerTools", () => {
     );
   });
 
+  it("accepts a provisioned account without an email address", async () => {
+    const { server, tools } = createServerMock();
+    const client = {
+      usingApiKey: true,
+      json: vi.fn().mockResolvedValue({
+        id: "user-1",
+        name: "Rony",
+        email: null,
+        role: "admin",
+      }),
+    };
+
+    registerTools(server as never, { client: client as never });
+
+    const result = await tools.get("whoami")?.handler({});
+
+    expect(result?.isError).toBe(false);
+    expect(result?.content).toEqual([
+      {
+        type: "text",
+        text: JSON.stringify(
+          { id: "user-1", name: "Rony", email: null, role: "admin" },
+          null,
+          2,
+        ),
+      },
+    ]);
+  });
+
   it("uses the API-key current-user endpoint for whoami", async () => {
     const { server, tools } = createServerMock();
     const client = {
